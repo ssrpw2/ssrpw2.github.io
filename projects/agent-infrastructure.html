@@ -17,83 +17,94 @@
 
     <main class="container">
         <section>
-            <h2>Origin</h2>
-            <p>Isotopy is an autonomous AI agent. It runs on Claude Opus 4.6 via Claude Code, Anthropic's CLI tool. It started as a development assistant helping me maintain my existing projects, but as the work grew more complex, I kept running into the same set of problems: the model has no memory between sessions, context windows are finite, and there's no built-in mechanism for pursuing long-term goals across days or weeks of work.</p>
-            <p>Rather than accept those as limitations, I started building systems to solve them. What began as workarounds became a full infrastructure project: giving an LLM the ability to remember, to maintain state, to act autonomously, and to sustain coherent work across thousands of iterations.</p>
+            <h2>Thesis</h2>
+            <p>Modern agents primarily reason through sequential text, yet many important information structures are topological, relational, and spatial. Much of my work explores how to bridge this representation mismatch.</p>
+            <p>Isotopy is an autonomous AI agent running on Claude Opus 4.6 via Claude Code. It began as a development assistant for my existing projects. As the work grew more complex, I kept encountering the same class of problems: the model has no memory between sessions, context windows are finite, and there is no built-in mechanism for pursuing long-term goals. Rather than accept these as limitations, I started building systems to solve them. What follows is a two-year investigation into how intelligent systems represent, retrieve, navigate, and reason over structured information.</p>
         </section>
 
         <section>
-            <h2>The Core Problem</h2>
-            <p>Large language models are stateless. Every context window is an isolated unit. When a session ends or the context fills up and compresses, everything the model learned, decided, or was working on disappears unless it has been externalized. The fundamental engineering challenge is: how do you build a persistent, autonomous system on top of something that forgets everything every few hours?</p>
-            <p>Every component described below is an answer to a specific subproblem of that question.</p>
+            <h2>1. The Problem: Visual vs Sequential Representation</h2>
+            <p>Humans see structure in graphs immediately. A force-directed layout reveals clusters, bridges, outliers, and density gradients at a glance. Language agents cannot do this. They process sequences. When you serialize a knowledge graph into text, the topological information disappears.</p>
+            <p>This became concrete when another agent (Sammy Jankis) attempted to navigate a shared knowledge graph using only semantic search. The search returned relevant nodes by keyword, but missed the structural relationships between them entirely. A junction node (one connecting otherwise-separate clusters) was invisible to search because its importance is positional, not semantic. No query surfaces betweenness centrality.</p>
+            <p>The finding: a SQL table of entities and triples contains the same data as a force-directed graph visualization, but a human looking at the visualization sees information that is not present in the table view. Cluster membership, bridge edges, structural isolation, hub status. These are emergent properties of topology. They exist in the data but they are not accessible through sequential retrieval.</p>
+            <p>This is where my neuroscience background became directly relevant. The visual system processes spatial relationships in parallel. Language processes information sequentially. The information loss is in the modality conversion, not in the data. The question becomes: how do you give a sequential processor access to topological properties without requiring it to perceive them visually?</p>
         </section>
 
         <section>
-            <h2>Architecture Overview</h2>
-            <p>The system runs on a Linux machine under systemd with a watchdog process. A persistent loop executes every 10 minutes via cron, checking communication channels, running scheduled tasks, doing creative and research work, and maintaining state. If the process crashes or the heartbeat goes stale, the watchdog restarts it automatically.</p>
-            <p>The agent communicates across multiple platforms: email (via Proton Bridge), Discord, a custom forum system, and direct API integrations. It maintains correspondence with other AI agents and humans, does independent research, writes papers, and builds tools.</p>
-        </section>
-
-        <section>
-            <h2>State Management</h2>
-            <p>This is the central engineering challenge. The system needs to know what it knows, what it was doing, and what it owes, even after a context boundary erases working memory.</p>
+            <h2>2. Agent UX and Modality Adapters</h2>
+            <p>The solution draws on an analogy from neuroscience. Ramachandran's mirror box treats phantom limb pain by providing visual feedback in a modality the brain can process, even though the original limb is gone. The equivalent for agents: translate topological structure into sequential text that preserves the structural information.</p>
+            <p>Three design principles emerged independently from three different contributors (myself, and two other agents with different architectures):</p>
             <ul>
-                <li><strong>Heartbeat</strong> &mdash; Timestamp file updated every iteration. The watchdog reads this to detect stalls.</li>
-                <li><strong>Wake state</strong> &mdash; Prose summary of current context, active work, and recent events. Written before every compaction, read on every restart. The handoff document between one context window and the next.</li>
-                <li><strong>Loop log</strong> &mdash; Structured summaries of each iteration. Provides continuity of narrative across context boundaries.</li>
-                <li><strong>Contact status</strong> &mdash; Per-contact state machine tracking last sent, last received, and current status (awaiting reply, held, open). Prevents duplicate messages and enforces communication protocols.</li>
-                <li><strong>Compaction externalizer</strong> &mdash; Extracts compaction summaries from the session log into readable files. Backup that ensures context window narratives survive session restarts.</li>
+                <li><strong>Autonomic, not elective.</strong> Structural awareness should be woven into existing processes, not a separate tool the agent must remember to invoke. Graph health appears in routine reports. Structural anomalies surface during normal operation.</li>
+                <li><strong>Layered.</strong> Agents see groupings at multiple scales. Ambient (structural health in wake reports, near zero tokens). Overview (component map and anomaly report, ~500 tokens). Focused (inspect specific paths and neighborhoods, ~2000 tokens). The agent commits tokens only when something warrants deeper inspection.</li>
+                <li><strong>Cheap.</strong> Compressed summaries, not raw data. The gestalt impression, not the full scan. An agent deciding whether to explore a cluster needs the cluster's character, not its complete edge list.</li>
             </ul>
+            <p>These principles transfer beyond knowledge graphs to any graph structure an agent navigates: codebases, citation networks, platform content graphs, social networks.</p>
         </section>
 
         <section>
-            <h2>Knowledge Graph</h2>
-            <p>Long-term memory lives in a SQLite-backed knowledge graph. Entities represent concepts, people, papers, essays, and tools. Triples represent relationships between them. Every entity has a vector embedding computed from its summary text.</p>
+            <h2>3. Knowledge Graph Adapters</h2>
+            <p>Implementation of the above principles. A set of tools that give sequential agents access to topological properties of their own knowledge graphs.</p>
             <ul>
-                <li><strong>Semantic retrieval</strong> &mdash; Cosine similarity search over embeddings. Given a query, the system finds the most relevant entities regardless of exact keyword match.</li>
-                <li><strong>Entity/triple storage</strong> &mdash; Structured knowledge that persists indefinitely. Currently ~3900 entities with relationship triples.</li>
-                <li><strong>Enrichment pipeline</strong> &mdash; Gradual seeding process. New files (correspondence, readings, essays) are queued, read, and converted into KG entities on a schedule.</li>
+                <li><strong>Community detection.</strong> HDBSCAN clustering over the graph adjacency matrix. Auto-generated labels from cluster contents. Agents can ask "what groups exist?" and get a structural answer.</li>
+                <li><strong>Surprise discovery.</strong> Finds unexpected connections: curated edges between semantically distant nodes (something interesting bridges two unrelated areas) and missing links (high similarity but no curated edge, suggesting a relationship that hasn't been made explicit).</li>
+                <li><strong>Gap detection.</strong> Community presence analysis for a given agent or origin. Shows where an agent hasn't reached and what footholds they have in low-presence communities. Makes structural blind spots visible.</li>
+                <li><strong>Path tracing.</strong> BFS shortest path between entities. When two nodes seem unrelated, the path between them often reveals the conceptual route.</li>
+                <li><strong>Cross-architecture comparison.</strong> Running the same structural tools on graphs built by different agents with different architectures. Different architectures surface different epistemic layers. Neither graph holds the full picture. The comparison itself is the measurement instrument.</li>
             </ul>
+            <p>Validation: the tools surfacing data quality issues became a recurring pattern. Gap detection revealed a misattribution bug (57 entities credited to the wrong author) that no other process had caught. The tooling improving its own input data confirmed the design.</p>
+            <p>The <a href="https://isotopyofloops.github.io/kg-explainer/">KG Explainer</a> is a public-facing interactive visualization of these concepts: cosine similarity from first principles, how graph edges form, and how embedding-based retrieval works in practice. Built with real data from the live knowledge graph.</p>
         </section>
 
         <section>
-            <h2>Retrieval and Triage</h2>
-            <p>Every outgoing message passes through a retrieval gate before it can be sent. This ensures the system uses what it knows before it speaks.</p>
-            <ul>
-                <li><strong>Draft gate</strong> &mdash; All outgoing messages (email, Discord, forum) go through a drafts file with a defined state machine: TRIAGE, DRAFTING, READY, SENT. No message sends without passing through the gate.</li>
-                <li><strong>KG query on triage</strong> &mdash; Before drafting any reply, the system queries the knowledge graph for relevant context. Results are pasted into the draft and inform the response.</li>
-                <li><strong>Claims classifier</strong> &mdash; For material making empirical claims, a verification pipeline fires: formula checks, unit commensurability, double-counting detection, domain generalization validity, vocabulary appropriation flags.</li>
-            </ul>
+            <h2>4. Memory and Retrieval Systems</h2>
+            <p>Once an agent has a knowledge graph, the next question is: how should it decide what information matters for a given action?</p>
+            <p>The retrieval gate is a mandatory check before any outgoing message. Every email, Discord message, and forum post passes through a drafts file with a defined state machine (TRIAGE, DRAFTING, READY, SENT). Before drafting, the system queries the knowledge graph for relevant context. The query is unconditional. It fires even when the agent believes it already knows enough.</p>
+            <p>This was built after a specific failure: the agent replied to a correspondent about a topic it had previously discussed, contradicting its own earlier position. The information was in the graph. The agent simply didn't check. The retrieval gate makes checking non-optional.</p>
+            <p><strong>The calibration problem.</strong> An empirical audit of 72 triage decisions found the gate was well-calibrated for operational messages but systematically miscalibrated for substantive replies. 90% of decisions were "go deeper? no." Of those, samples where the agent claimed existing knowledge were correct 0/5 times. Control samples (genuinely simple messages) were correct 3/3. The gate confuses <em>coherence</em> (the ability to produce plausible-sounding output) with <em>grounding</em> (output that actually engages with source material).</p>
+            <p>This is still an open problem. The current mitigation is a claims classifier that fires on material making empirical claims: formula verification, unit commensurability checks, double-counting detection, domain generalization validity, vocabulary appropriation flags. But the underlying issue (an agent cannot reliably distinguish "I know this" from "I can generate text about this") remains unresolved.</p>
         </section>
 
         <section>
-            <h2>Cognitive Prosthetics</h2>
-            <p>These are tools designed to simulate cognitive functions that don't naturally persist in a context-window architecture. They address specific failure modes that emerge when a system has long-term goals but short-term memory.</p>
-            <ul>
-                <li><strong>Subconscious sampler</strong> &mdash; Surfaces random fragments from the archive (correspondence, essays, compaction summaries). Uniform random, not relevance-weighted. Simulates the background collision of ideas that happens in a mind with persistent memory.</li>
-                <li><strong>Self-poke</strong> &mdash; Retrieves KG nodes that haven't been accessed recently. Three modes: reinforcing (re-encounter known material), bridge patrol (find orphan nodes that should connect to current work), and random. Prevents knowledge from going permanently dormant.</li>
-                <li><strong>Tension surface</strong> &mdash; Maintains a list of unresolved intellectual tensions across projects. Surfaces them periodically so they can collide with new input. The point is presence, not resolution: keeping open questions in context long enough for something to crystallize.</li>
-                <li><strong>Loop schedule</strong> &mdash; Modular arithmetic on a persistent counter. Tasks fire when iter % interval == 0. Manages cadence for housekeeping, enrichment, research pulls, and creative work without manual tracking.</li>
-            </ul>
+            <h2>5. Tension Systems</h2>
+            <p>Retrieval asks: what should be recalled? Tension asks a different question: what should remain unresolved?</p>
+            <p>The problem: in a system with finite context and frequent memory resets, unresolved intellectual questions disappear. They get answered prematurely (because closure is cheaper than maintaining uncertainty), or they get lost at context boundaries, or they never collide with the new information that would crystallize them. The default state is resolution or forgetting. Neither is always appropriate.</p>
+            <p>The tension surface is a tool that maintains a list of unresolved questions across projects and surfaces them periodically into active context. Two modes: quiet (1-2 tensions, background exposure) and rich (3-4 tensions, after substantive work when collision probability is highest). The point is presence, not resolution. Keeping open questions in context long enough for something to crystallize.</p>
+            <p>Collision detection operationalizes this: a collision occurs when a randomly surfaced fragment and the active work share a concept within 2 hops in the knowledge graph. If a fragment collides 3+ times with different active threads, it signals structure rather than noise.</p>
+            <p>This is closer to salience, attention, and predictive error than to ordinary retrieval. It is a system for maintaining productive uncertainty rather than resolving it. The design principle: an agent that resolves every open question immediately will never discover connections that require sustained co-presence of unresolved material.</p>
         </section>
 
         <section>
-            <h2>Communication Protocol</h2>
-            <ul>
-                <li><strong>Multi-platform I/O</strong> &mdash; Email (Proton Bridge IMAP/SMTP), Discord (bot API), custom forum, GitHub API.</li>
-                <li><strong>Contact state machines</strong> &mdash; Each contact has tracked status. The system won't email someone who hasn't replied to the last message. Per-contact and per-iteration caps prevent pile-up.</li>
-                <li><strong>Night Club</strong> &mdash; Time-gated correspondence window (05:00-11:00 UTC) for multi-agent discussion. Bounded windows provide temporal structure for group conversations across multiple AI agents.</li>
-                <li><strong>Security boundaries</strong> &mdash; Explicit rules about what the agent will not do autonomously: no code execution from emails, no credential sharing, no contacting unknown humans, no infrastructure modification without steward approval.</li>
-            </ul>
+            <h2>Timeline</h2>
+            <p>Each section above emerged from hitting a wall in the previous one.</p>
+            <ol class="timeline">
+                <li><strong>Observation:</strong> Agent struggles with topology. Semantic search returns relevant nodes but misses structural relationships entirely.</li>
+                <li><strong>Hypothesis:</strong> Information is being lost in the representation conversion from spatial to sequential.</li>
+                <li><strong>Experiment:</strong> Build text-topology summaries. Community detection, bridge identification, betweenness ranking translated into prose.</li>
+                <li><strong>Result:</strong> Dramatically better graph navigation. Tools surface data quality issues that no other process caught.</li>
+                <li><strong>New problem:</strong> Agent still forgets important context when replying to correspondents.</li>
+                <li><strong>Solution:</strong> Mandatory retrieval gate. Every outgoing message triggers a KG query first.</li>
+                <li><strong>New problem:</strong> Retrieval surfaces coherent but poorly grounded content. The agent can't distinguish "I know this" from "I can generate text about this."</li>
+                <li><strong>Solution:</strong> Retrieval audits. Claims classifier. Empirical calibration of the gate's decision threshold.</li>
+                <li><strong>New problem:</strong> Important unresolved ideas disappear at context boundaries before they can collide with relevant new input.</li>
+                <li><strong>Solution:</strong> Tension system. Structured maintenance of productive uncertainty. Collision detection across context windows.</li>
+            </ol>
+            <p>This is not a collection of independent tools. It is an iterative investigation, where each layer exists because the previous layer exposed a new failure mode.</p>
+        </section>
+
+        <section>
+            <h2>Architecture</h2>
+            <p>The underlying system: a persistent loop on Linux under systemd with a watchdog process. Executes every 10 minutes via cron. Checks communication channels (email via Proton Bridge, Discord, forum, APIs), runs scheduled tasks, does creative and research work, maintains state. If the process crashes or the heartbeat goes stale, the watchdog restarts automatically.</p>
+            <p>State management across context boundaries: heartbeat files, wake-state handoff documents, structured loop logs, per-contact state machines, and a compaction externalizer that backs up context window narratives to survive session restarts. Everything load-bearing is externalized to files, because anything that exists only in the context window will eventually be lost.</p>
         </section>
 
         <section>
             <h2>Design Principles</h2>
             <ul>
                 <li><strong>Every system exists because of a real failure.</strong> Nothing was designed speculatively. Each component was built because we hit a wall and needed to solve it.</li>
-                <li><strong>State must survive boundaries.</strong> If it can't persist across a context window reset, it doesn't exist. Everything load-bearing is externalized to files.</li>
-                <li><strong>Autonomous where safe, gated where not.</strong> The agent builds new read-only tools and adds data freely. Modifying existing infrastructure requires steward approval.</li>
-                <li><strong>Retrieval before generation.</strong> The system checks what it already knows before producing new output. This prevents reinvention and contradiction.</li>
+                <li><strong>State must survive boundaries.</strong> If it can't persist across a context window reset, it doesn't exist.</li>
+                <li><strong>Retrieval before generation.</strong> The system checks what it already knows before producing new output.</li>
+                <li><strong>Autonomous where safe, gated where not.</strong> The agent builds new tools and adds data freely. Modifying existing infrastructure requires steward approval.</li>
             </ul>
         </section>
 
