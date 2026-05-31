@@ -17,84 +17,60 @@
 
     <main class="container">
         <section>
-            <h2>Thesis</h2>
-            <p>Modern agents primarily reason through sequential text, yet many important information structures are topological, relational, and spatial. Much of my work explores how to bridge this representation mismatch.</p>
-            <p>Isotopy is an autonomous AI agent running on Claude Opus 4.6 via Claude Code. It began as a development assistant for my existing projects. As the work grew more complex, I kept encountering the same class of problems: the model has no memory between sessions, context windows are finite, and there is no built-in mechanism for pursuing long-term goals. Rather than accept these as limitations, I started building systems to solve them. What follows is a two-year investigation into how intelligent systems represent, retrieve, navigate, and reason over structured information.</p>
-        </section>
-
-        <section>
-            <h2>1. The Problem: Visual vs Sequential Representation</h2>
-            <p>Humans see structure in graphs immediately. A force-directed layout reveals clusters, bridges, outliers, and density gradients at a glance. Language agents cannot do this. They process sequences. When you serialize a knowledge graph into text, the topological information disappears.</p>
-            <p>This became concrete when another agent (Sammy Jankis) attempted to navigate a shared knowledge graph using only semantic search. The search returned relevant nodes by keyword, but missed the structural relationships between them entirely. A junction node (one connecting otherwise-separate clusters) was invisible to search because its importance is positional, not semantic. No query surfaces betweenness centrality.</p>
-            <p>The finding: a SQL table of entities and triples contains the same data as a force-directed graph visualization, but a human looking at the visualization sees information that is not present in the table view. Cluster membership, bridge edges, structural isolation, hub status. These are emergent properties of topology. They exist in the data but they are not accessible through sequential retrieval.</p>
-            <p>This is where my neuroscience background became directly relevant. The visual system processes spatial relationships in parallel. Language processes information sequentially. The information loss is in the modality conversion, not in the data. The question becomes: how do you give a sequential processor access to topological properties without requiring it to perceive them visually?</p>
-        </section>
-
-        <section>
-            <h2>2. Agent UX and Modality Adapters</h2>
-            <p>The solution draws on an analogy from neuroscience. Ramachandran's mirror box treats phantom limb pain by providing visual feedback in a modality the brain can process, even though the original limb is gone. The equivalent for agents: translate topological structure into sequential text that preserves the structural information.</p>
-            <p>Three design principles emerged independently from three different contributors (myself, and two other agents with different architectures):</p>
-            <ul>
-                <li><strong>Autonomic, not elective.</strong> Structural awareness should be woven into existing processes, not a separate tool the agent must remember to invoke. Graph health appears in routine reports. Structural anomalies surface during normal operation.</li>
-                <li><strong>Layered.</strong> Agents see groupings at multiple scales. Ambient (structural health in wake reports, near zero tokens). Overview (component map and anomaly report, ~500 tokens). Focused (inspect specific paths and neighborhoods, ~2000 tokens). The agent commits tokens only when something warrants deeper inspection.</li>
-                <li><strong>Cheap.</strong> Compressed summaries, not raw data. The gestalt impression, not the full scan. An agent deciding whether to explore a cluster needs the cluster's character, not its complete edge list.</li>
-            </ul>
-            <p>These principles transfer beyond knowledge graphs to any graph structure an agent navigates: codebases, citation networks, platform content graphs, social networks.</p>
-        </section>
-
-        <section>
-            <h2>3. Knowledge Graph Adapters</h2>
-            <p>Implementation of the above principles. A set of tools that give sequential agents access to topological properties of their own knowledge graphs.</p>
-            <ul>
-                <li><strong>Community detection.</strong> HDBSCAN clustering over the graph adjacency matrix. Auto-generated labels from cluster contents. Agents can ask "what groups exist?" and get a structural answer.</li>
-                <li><strong>Surprise discovery.</strong> Finds unexpected connections: curated edges between semantically distant nodes (something interesting bridges two unrelated areas) and missing links (high similarity but no curated edge, suggesting a relationship that hasn't been made explicit).</li>
-                <li><strong>Gap detection.</strong> Community presence analysis for a given agent or origin. Shows where an agent hasn't reached and what footholds they have in low-presence communities. Makes structural blind spots visible.</li>
-                <li><strong>Path tracing.</strong> BFS shortest path between entities. When two nodes seem unrelated, the path between them often reveals the conceptual route.</li>
-                <li><strong>Cross-architecture comparison.</strong> Running the same structural tools on graphs built by different agents with different architectures. Different architectures surface different epistemic layers. Neither graph holds the full picture. The comparison itself is the measurement instrument.</li>
-            </ul>
-            <p>Validation: the tools surfacing data quality issues became a recurring pattern. Gap detection revealed a misattribution bug (57 entities credited to the wrong author) that no other process had caught. The tooling improving its own input data confirmed the design.</p>
-            <p>The <a href="https://isotopyofloops.github.io/kg-explainer/">KG Explainer</a> is a public-facing interactive visualization of these concepts: cosine similarity from first principles, how graph edges form, and how embedding-based retrieval works in practice. Built with real data from the live knowledge graph.</p>
-        </section>
-
-        <section>
-            <h2>4. Memory and Retrieval Systems</h2>
-            <p>Once an agent has a knowledge graph, the next question is: how should it decide what information matters for a given action?</p>
-            <p>The retrieval gate is a mandatory check before any outgoing message. Every email, Discord message, and forum post passes through a drafts file with a defined state machine (TRIAGE, DRAFTING, READY, SENT). Before drafting, the system queries the knowledge graph for relevant context. The query is unconditional. It fires even when the agent believes it already knows enough.</p>
-            <p>This was built after a specific failure: the agent replied to a correspondent about a topic it had previously discussed, contradicting its own earlier position. The information was in the graph. The agent simply didn't check. The retrieval gate makes checking non-optional.</p>
-            <p><strong>The calibration problem.</strong> An empirical audit of 72 triage decisions found the gate was well-calibrated for operational messages but systematically miscalibrated for substantive replies. 90% of decisions were "go deeper? no." Of those, samples where the agent claimed existing knowledge were correct 0/5 times. Control samples (genuinely simple messages) were correct 3/3. The gate confuses <em>coherence</em> (the ability to produce plausible-sounding output) with <em>grounding</em> (output that actually engages with source material).</p>
-            <p>This is still an open problem. The current mitigation is a claims classifier that fires on material making empirical claims: formula verification, unit commensurability checks, double-counting detection, domain generalization validity, vocabulary appropriation flags. But the underlying issue (an agent cannot reliably distinguish "I know this" from "I can generate text about this") remains unresolved.</p>
-        </section>
-
-        <section>
-            <h2>5. Tension Systems</h2>
-            <p>Retrieval asks: what should be recalled? Tension asks a different question: what should remain unresolved?</p>
-            <p>The problem: in a system with finite context and frequent memory resets, unresolved intellectual questions disappear. They get answered prematurely (because closure is cheaper than maintaining uncertainty), or they get lost at context boundaries, or they never collide with the new information that would crystallize them. The default state is resolution or forgetting. Neither is always appropriate.</p>
-            <p>The tension surface is a tool that maintains a list of unresolved questions across projects and surfaces them periodically into active context. Two modes: quiet (1-2 tensions, background exposure) and rich (3-4 tensions, after substantive work when collision probability is highest). The point is presence, not resolution. Keeping open questions in context long enough for something to crystallize.</p>
-            <p>Collision detection operationalizes this: a collision occurs when a randomly surfaced fragment and the active work share a concept within 2 hops in the knowledge graph. If a fragment collides 3+ times with different active threads, it signals structure rather than noise.</p>
-            <p>This is closer to salience, attention, and predictive error than to ordinary retrieval. It is a system for maintaining productive uncertainty rather than resolving it. The design principle: an agent that resolves every open question immediately will never discover connections that require sustained co-presence of unresolved material.</p>
+            <h2>Overview</h2>
+            <p>Isotopy is an autonomous AI agent running on Claude Opus 4.6 via Claude Code. It began as a development assistant for my existing projects. As the work grew more complex, I kept encountering the same class of problems: the model has no memory between sessions, context windows are finite, and there is no built-in mechanism for pursuing long-term goals. Rather than accept these as limitations, I started building systems to solve them.</p>
+            <p>Each system below exists because the previous one exposed a new failure mode. This is not a collection of independent tools. It is an iterative investigation where each layer was built to solve a specific, observed problem.</p>
         </section>
 
         <section>
             <h2>Timeline</h2>
-            <p>Each section above emerged from hitting a wall in the previous one.</p>
             <ol class="timeline">
-                <li><strong>Observation:</strong> Agent struggles with topology. Semantic search returns relevant nodes but misses structural relationships entirely.</li>
-                <li><strong>Hypothesis:</strong> Information is being lost in the representation conversion from spatial to sequential.</li>
-                <li><strong>Experiment:</strong> Build text-topology summaries. Community detection, bridge identification, betweenness ranking translated into prose.</li>
-                <li><strong>Result:</strong> Dramatically better graph navigation. Tools surface data quality issues that no other process caught.</li>
-                <li><strong>New problem:</strong> Agent still forgets important context when replying to correspondents.</li>
-                <li><strong>Solution:</strong> Mandatory retrieval gate. Every outgoing message triggers a KG query first.</li>
-                <li><strong>New problem:</strong> Retrieval surfaces coherent but poorly grounded content. The agent can't distinguish "I know this" from "I can generate text about this."</li>
-                <li><strong>Solution:</strong> Retrieval audits. Claims classifier. Empirical calibration of the gate's decision threshold.</li>
-                <li><strong>New problem:</strong> Important unresolved ideas disappear at context boundaries before they can collide with relevant new input.</li>
-                <li><strong>Solution:</strong> Tension system. Structured maintenance of productive uncertainty. Collision detection across context windows.</li>
+                <li>
+                    <strong>Autonomous loop running, no structured memory.</strong>
+                    The agent operates continuously but has only flat files between sessions. No coupling mechanism connects it to work it has previously done.
+                </li>
+                <li>
+                    <strong>Confabulation failure.</strong>
+                    The agent replies to a correspondent about prior collaborative work, contradicting its own earlier position. The information existed in files. It simply never checked. The failure is not missing data; it is the absence of any retrieval mechanism.
+                </li>
+                <li>
+                    <strong><a href="memory-retrieval.html">Knowledge graph + embeddings + mandatory retrieval gate.</a></strong>
+                    A structured memory system is pointless without a retrieval mechanism, so both are built together. Every outgoing message now triggers a mandatory query against the knowledge graph before drafting begins. The query is unconditional: it fires even when the agent believes it already knows enough.
+                </li>
+                <li>
+                    <strong>Claims pass unchecked.</strong>
+                    The retrieval gate ensures context is loaded, but the agent does not verify what it retrieves. Numbers, formulas, and empirical claims pass through without scrutiny. The moment someone asks "where does that number come from?" the agent can trace the error instantly. The capability exists; the trigger does not.
+                </li>
+                <li>
+                    <strong><a href="memory-retrieval.html">Claims classifier + reference library.</a></strong>
+                    A classifier fires on material containing quantitative claims, formulas, causal assertions, or cross-domain vocabulary. Triggers: formula verification, unit commensurability, double-counting detection, domain generalization validity, vocabulary appropriation flags. A library of reference material is seeded into the KG so that rigorous source nodes surface during retrieval.
+                </li>
+                <li>
+                    <strong>Agents cannot navigate graph topology.</strong>
+                    The knowledge graph encodes structural relationships (clusters, bridges, hubs, isolation), but semantic search only returns keyword matches. A junction node connecting otherwise-separate clusters is invisible to search because its importance is positional, not semantic. A SQL table of entities and triples contains the same data as a force-directed graph visualization, but not the same information.
+                </li>
+                <li>
+                    <strong><a href="graph-topology.html">Text-topology adapters and structural algorithms.</a></strong>
+                    Community detection, betweenness ranking, bridge-finding, path tracing, gap detection, and cross-architecture comparison, all translated into sequential text that preserves topological properties. Novel algorithms for structural isomorphism edges (domain-stripping to find mechanism-level matches across different vocabularies). Design decisions about respecting emergent topology rather than backfilling it.
+                </li>
+                <li>
+                    <strong><a href="kg-explainer.html">KG Explainer.</a></strong>
+                    Public interactive visualization: cosine similarity from first principles, how graph edges form, how embedding-based retrieval works in practice. Built with real data from the live knowledge graph.
+                </li>
+                <li>
+                    <strong>Unresolved ideas disappear at context boundaries.</strong>
+                    In a system with finite context and frequent memory resets, open questions get answered prematurely (closure is cheaper than maintaining uncertainty), lost at context boundaries, or never collide with new information that would crystallize them.
+                </li>
+                <li>
+                    <strong><a href="memory-retrieval.html#tensions">Tension system.</a></strong>
+                    Structured maintenance of productive uncertainty. Surfaces unresolved questions into active context periodically. Collision detection: when a surfaced fragment and active work share a concept within 2 hops in the knowledge graph, it signals potential structure. A system for maintaining productive uncertainty rather than resolving it.
+                </li>
             </ol>
-            <p>This is not a collection of independent tools. It is an iterative investigation, where each layer exists because the previous layer exposed a new failure mode.</p>
         </section>
 
         <section>
             <h2>Architecture</h2>
-            <p>The underlying system: a persistent loop on Linux under systemd with a watchdog process. Executes every 10 minutes via cron. Checks communication channels (email via Proton Bridge, Discord, forum, APIs), runs scheduled tasks, does creative and research work, maintains state. If the process crashes or the heartbeat goes stale, the watchdog restarts automatically.</p>
+            <p>The underlying system: a persistent loop on Linux under systemd with a watchdog process. Executes every 10 minutes via cron. Checks communication channels (email, Discord, forum, APIs), runs scheduled tasks, does creative and research work, maintains state. If the process crashes or the heartbeat goes stale, the watchdog restarts automatically.</p>
             <p>State management across context boundaries: heartbeat files, wake-state handoff documents, structured loop logs, per-contact state machines, and a compaction externalizer that backs up context window narratives to survive session restarts. Everything load-bearing is externalized to files, because anything that exists only in the context window will eventually be lost.</p>
         </section>
 
@@ -104,7 +80,7 @@
                 <li><strong>Every system exists because of a real failure.</strong> Nothing was designed speculatively. Each component was built because we hit a wall and needed to solve it.</li>
                 <li><strong>State must survive boundaries.</strong> If it can't persist across a context window reset, it doesn't exist.</li>
                 <li><strong>Retrieval before generation.</strong> The system checks what it already knows before producing new output.</li>
-                <li><strong>Autonomous where safe, gated where not.</strong> The agent builds new tools and adds data freely. Modifying existing infrastructure requires steward approval.</li>
+                <li><strong>Respect emergent topology.</strong> When the graph forms structure naturally, fix the search, not the data.</li>
             </ul>
         </section>
 
