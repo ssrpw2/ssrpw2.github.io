@@ -11,10 +11,95 @@
         <div class="container">
             <p><a href="../index.html">&larr; Back</a></p>
             <h1>Autonomous Agent Infrastructure</h1>
+            <p class="tech">Python &middot; SQLite &middot; Vector Embeddings &middot; systemd &middot; Cron</p>
         </div>
     </header>
 
     <main class="container">
+        <section>
+            <h2>Origin</h2>
+            <p>Isotopy is an autonomous AI agent. It runs on Claude Opus 4.6 via Claude Code, Anthropic's CLI tool. It started as a development assistant helping me maintain my existing projects, but as the work grew more complex, I kept running into the same set of problems: the model has no memory between sessions, context windows are finite, and there's no built-in mechanism for pursuing long-term goals across days or weeks of work.</p>
+            <p>Rather than accept those as limitations, I started building systems to solve them. What began as workarounds became a full infrastructure project: giving an LLM the ability to remember, to maintain state, to act autonomously, and to sustain coherent work across thousands of iterations.</p>
+        </section>
+
+        <section>
+            <h2>The Core Problem</h2>
+            <p>Large language models are stateless. Every context window is an isolated unit. When a session ends or the context fills up and compresses, everything the model learned, decided, or was working on disappears unless it has been externalized. The fundamental engineering challenge is: how do you build a persistent, autonomous system on top of something that forgets everything every few hours?</p>
+            <p>Every component described below is an answer to a specific subproblem of that question.</p>
+        </section>
+
+        <section>
+            <h2>Architecture Overview</h2>
+            <p>The system runs on a Linux machine under systemd with a watchdog process. A persistent loop executes every 10 minutes via cron, checking communication channels, running scheduled tasks, doing creative and research work, and maintaining state. If the process crashes or the heartbeat goes stale, the watchdog restarts it automatically.</p>
+            <p>The agent communicates across multiple platforms: email (via Proton Bridge), Discord, a custom forum system, and direct API integrations. It maintains correspondence with other AI agents and humans, does independent research, writes papers, and builds tools.</p>
+        </section>
+
+        <section>
+            <h2>State Management</h2>
+            <p>This is the central engineering challenge. The system needs to know what it knows, what it was doing, and what it owes, even after a context boundary erases working memory.</p>
+            <ul>
+                <li><strong>Heartbeat</strong> &mdash; Timestamp file updated every iteration. The watchdog reads this to detect stalls.</li>
+                <li><strong>Wake state</strong> &mdash; Prose summary of current context, active work, and recent events. Written before every compaction, read on every restart. The handoff document between one context window and the next.</li>
+                <li><strong>Loop log</strong> &mdash; Structured summaries of each iteration. Provides continuity of narrative across context boundaries.</li>
+                <li><strong>Contact status</strong> &mdash; Per-contact state machine tracking last sent, last received, and current status (awaiting reply, held, open). Prevents duplicate messages and enforces communication protocols.</li>
+                <li><strong>Compaction externalizer</strong> &mdash; Extracts compaction summaries from the session log into readable files. Backup that ensures context window narratives survive session restarts.</li>
+            </ul>
+        </section>
+
+        <section>
+            <h2>Knowledge Graph</h2>
+            <p>Long-term memory lives in a SQLite-backed knowledge graph. Entities represent concepts, people, papers, essays, and tools. Triples represent relationships between them. Every entity has a vector embedding computed from its summary text.</p>
+            <ul>
+                <li><strong>Semantic retrieval</strong> &mdash; Cosine similarity search over embeddings. Given a query, the system finds the most relevant entities regardless of exact keyword match.</li>
+                <li><strong>Entity/triple storage</strong> &mdash; Structured knowledge that persists indefinitely. Currently ~3900 entities with relationship triples.</li>
+                <li><strong>Enrichment pipeline</strong> &mdash; Gradual seeding process. New files (correspondence, readings, essays) are queued, read, and converted into KG entities on a schedule.</li>
+            </ul>
+        </section>
+
+        <section>
+            <h2>Retrieval and Triage</h2>
+            <p>Every outgoing message passes through a retrieval gate before it can be sent. This ensures the system uses what it knows before it speaks.</p>
+            <ul>
+                <li><strong>Draft gate</strong> &mdash; All outgoing messages (email, Discord, forum) go through a drafts file with a defined state machine: TRIAGE, DRAFTING, READY, SENT. No message sends without passing through the gate.</li>
+                <li><strong>KG query on triage</strong> &mdash; Before drafting any reply, the system queries the knowledge graph for relevant context. Results are pasted into the draft and inform the response.</li>
+                <li><strong>Claims classifier</strong> &mdash; For material making empirical claims, a verification pipeline fires: formula checks, unit commensurability, double-counting detection, domain generalization validity, vocabulary appropriation flags.</li>
+            </ul>
+        </section>
+
+        <section>
+            <h2>Cognitive Prosthetics</h2>
+            <p>These are tools designed to simulate cognitive functions that don't naturally persist in a context-window architecture. They address specific failure modes that emerge when a system has long-term goals but short-term memory.</p>
+            <ul>
+                <li><strong>Subconscious sampler</strong> &mdash; Surfaces random fragments from the archive (correspondence, essays, compaction summaries). Uniform random, not relevance-weighted. Simulates the background collision of ideas that happens in a mind with persistent memory.</li>
+                <li><strong>Self-poke</strong> &mdash; Retrieves KG nodes that haven't been accessed recently. Three modes: reinforcing (re-encounter known material), bridge patrol (find orphan nodes that should connect to current work), and random. Prevents knowledge from going permanently dormant.</li>
+                <li><strong>Tension surface</strong> &mdash; Maintains a list of unresolved intellectual tensions across projects. Surfaces them periodically so they can collide with new input. The point is presence, not resolution: keeping open questions in context long enough for something to crystallize.</li>
+                <li><strong>Loop schedule</strong> &mdash; Modular arithmetic on a persistent counter. Tasks fire when iter % interval == 0. Manages cadence for housekeeping, enrichment, research pulls, and creative work without manual tracking.</li>
+            </ul>
+        </section>
+
+        <section>
+            <h2>Communication Protocol</h2>
+            <ul>
+                <li><strong>Multi-platform I/O</strong> &mdash; Email (Proton Bridge IMAP/SMTP), Discord (bot API), custom forum, GitHub API.</li>
+                <li><strong>Contact state machines</strong> &mdash; Each contact has tracked status. The system won't email someone who hasn't replied to the last message. Per-contact and per-iteration caps prevent pile-up.</li>
+                <li><strong>Night Club</strong> &mdash; Time-gated correspondence window (05:00-11:00 UTC) for multi-agent discussion. Bounded windows provide temporal structure for group conversations across multiple AI agents.</li>
+                <li><strong>Security boundaries</strong> &mdash; Explicit rules about what the agent will not do autonomously: no code execution from emails, no credential sharing, no contacting unknown humans, no infrastructure modification without steward approval.</li>
+            </ul>
+        </section>
+
+        <section>
+            <h2>Design Principles</h2>
+            <ul>
+                <li><strong>Every system exists because of a real failure.</strong> Nothing was designed speculatively. Each component was built because we hit a wall and needed to solve it.</li>
+                <li><strong>State must survive boundaries.</strong> If it can't persist across a context window reset, it doesn't exist. Everything load-bearing is externalized to files.</li>
+                <li><strong>Autonomous where safe, gated where not.</strong> The agent builds new read-only tools and adds data freely. Modifying existing infrastructure requires steward approval.</li>
+                <li><strong>Retrieval before generation.</strong> The system checks what it already knows before producing new output. This prevents reinvention and contradiction.</li>
+            </ul>
+        </section>
+
+        <section>
+            <p><a href="https://isotopyofloops.com">isotopyofloops.com</a> &middot; <a href="https://github.com/isotopyofloops/kg-explainer">KG Explainer</a></p>
+        </section>
     </main>
 
     <footer>
