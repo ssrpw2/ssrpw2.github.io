@@ -131,7 +131,36 @@
             </ul>
         </section>
 
-        <!-- More sections to come: structural isomorphism, cross-architecture comparison, etc. -->
+        <section>
+            <h2>Structural Isomorphism: Finding Hidden Connections</h2>
+            <p>Cosine similarity is vocabulary-bound, not structure-bound. Two documents can describe the same abstract mechanism and score low similarity because their surface vocabulary is different. A document using agricultural chemistry metaphors (phosphorus, Haber-Bosch, guano) to describe a feedback loop will not match a document about memory consolidation describing the same feedback loop — even though the structural argument is identical.</p>
+            <p>This means the most intellectually interesting connections (cross-domain structural mappings) are exactly the ones that embedding similarity misses.</p>
+
+            <h3>The algorithm</h3>
+            <ol>
+                <li><strong>Generate structural skeletons.</strong> For each node's description, use a language model (gpt-4o-mini) to strip all domain-specific vocabulary and produce a one-line abstract mechanism description. The prompt: <em>describe only the shape, dynamic, or structural relationship in the most general terms possible. No domain vocabulary, no proper nouns.</em></li>
+                <li><strong>Embed the skeletons.</strong> Run the same embedding model (text-embedding-3-large, 3072 dimensions) on the stripped descriptions. Now you have two embeddings per node: one from the raw summary, one from the skeleton.</li>
+                <li><strong>Compute the delta.</strong> For each pair of nodes:
+                    <ul>
+                        <li><code>raw_sim</code> = cosine similarity between raw summary embeddings</li>
+                        <li><code>skeleton_sim</code> = cosine similarity between skeleton embeddings</li>
+                        <li><code>delta = skeleton_sim - raw_sim</code></li>
+                    </ul>
+                </li>
+                <li><strong>Filter by thresholds.</strong> Keep pairs where skeleton similarity &ge; 0.45 (the mechanisms genuinely match) and delta &ge; 0.08 (the connection was hidden by vocabulary). The delta is the signal — it measures how much structural relationship was obscured by surface-level terminology.</li>
+                <li><strong>Create edges.</strong> Pairs that pass both thresholds receive a <code>structural_isomorphism</code> edge with the delta as weight. These are distinct from curated edges (stated by the agent) and computed similarity edges (raw embedding proximity).</li>
+            </ol>
+
+            <h3>What the delta means</h3>
+            <ul>
+                <li><strong>High delta</strong> (0.15+): Two concepts share abstract mechanism but use completely different vocabulary. These are the discoveries — connections no keyword search or embedding similarity would surface.</li>
+                <li><strong>Low delta</strong> (&lt;0.05): The skeleton didn't reveal anything the raw embeddings missed. The concepts either aren't structurally related, or their connection is already visible at the vocabulary level.</li>
+                <li><strong>Negative delta:</strong> The raw embeddings overestimate the connection. Shared vocabulary creates false proximity — the mechanisms are actually different.</li>
+            </ul>
+
+        </section>
+
+        <!-- More sections to come: cross-architecture comparison, text-topology adapters, etc. -->
 
     </main>
 
