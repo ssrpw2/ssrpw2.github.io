@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KG Explainer | Samantha White</title>
+    <link rel="stylesheet" href="../style.css">
+    <style>
+        .callout {
+            background: #f0f5fa;
+            border: 1px solid #b8c8dc;
+            border-radius: 4px;
+            padding: 14px 18px;
+            margin: 18px 0;
+            font-size: 0.9rem;
+            line-height: 1.65;
+        }
+        .callout strong { color: #1a4fa3; }
+        code {
+            background: #f4f6f9;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 0.88em;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <p><a href="agent-infrastructure.html">&larr; Back to Overview</a></p>
+            <h1>KG Explainer</h1>
+            <p class="tech">Cloudflare Workers &middot; JavaScript &middot; HTML/CSS &middot; GitHub Pages</p>
+        </div>
+    </header>
+
+    <main class="container">
+        <section>
+            <h2>What It Is</h2>
+            <p>The KG Explainer is an interactive web tool that explains how the knowledge graph works. It is built with real data from the live knowledge graph, not simplified examples or diagrams of hypothetical structures.</p>
+            <p>It has two interfaces: a human-readable page hosted on GitHub Pages, and a machine-readable API running on Cloudflare Workers. Both describe the same system. The API is designed to be agent-accessible: other AI agents can query it programmatically to understand the architecture without needing to parse HTML or read source code.</p>
+            <p><a href="https://ssrpw2.github.io/kg-explainer/">Live explainer</a> &middot; <a href="https://github.com/isotopyofloops/kg-explainer">Source on GitHub</a></p>
+        </section>
+
+        <section>
+            <h2>Human Interface</h2>
+            <p>The human-facing page is a multi-section walkthrough covering:</p>
+            <ul>
+                <li>What the Memory-Augmented System (MAS) is and why it exists</li>
+                <li>How retrieval works: semantic entry, graph traversal, the three-lens triage</li>
+                <li>How the tension system works: preserving cognitive residue across context boundaries</li>
+                <li>What the evidence looks like: real retrieval results, real graph structures, real tension collisions</li>
+            </ul>
+            <p>The page includes interactive elements showing cosine similarity calculations, graph structure visualization, and the flow of a retrieval query through the system. These are not decorative. They use actual embeddings and actual graph data to demonstrate the mechanisms.</p>
+            <p>The explainer was recently updated to center on "cognitive residue" as the organizing concept. This is the key insight that the tension system preserves: the pre-crystalline material that models produce near context boundaries, which would otherwise be lost at compaction. The updated framing treats this as the central contribution rather than presenting the knowledge graph and tension system as separate tools.</p>
+        </section>
+
+        <section>
+            <h2>API</h2>
+            <p>The API provides GET endpoints returning structured JSON. Each endpoint describes one component of the system.</p>
+
+            <h3>Components</h3>
+            <ul>
+                <li><code>knowledge-graph</code> &mdash; entity storage, embedding generation, edge curation</li>
+                <li><code>retrieval-gate</code> &mdash; mandatory pre-response retrieval, three-lens triage</li>
+                <li><code>tension-system</code> &mdash; cognitive residue preservation, collision detection</li>
+                <li><code>claims-classifier</code> &mdash; quantitative verification, vocabulary appropriation flags</li>
+                <li><code>subconscious-sampler</code> &mdash; low-salience node surfacing from graph periphery</li>
+                <li><code>state-management</code> &mdash; heartbeat, wake-state handoff, loop logs</li>
+            </ul>
+
+            <h3>Response structure</h3>
+            <p>Each component endpoint returns four fields:</p>
+            <ul>
+                <li><strong>summary</strong> &mdash; one-paragraph description of what the component does</li>
+                <li><strong>detail</strong> &mdash; full explanation of the mechanism, design decisions, and implementation</li>
+                <li><strong>operational_notes</strong> &mdash; practical information about how the component behaves in production</li>
+                <li><strong>common_misreadings</strong> &mdash; explicit corrections for likely misinterpretations</li>
+            </ul>
+
+            <h3>Tier system</h3>
+            <p>The API is organized in three tiers of increasing detail:</p>
+            <ol>
+                <li><strong>Overview.</strong> A single endpoint returning a high-level description of the full system and links to each component.</li>
+                <li><strong>Component detail.</strong> Individual endpoints for each component, returning the four-field structure described above.</li>
+                <li><strong>Full architecture.</strong> A complete dump of all components with cross-references and dependency information.</li>
+            </ol>
+            <p>An agent reading the API can start at the overview, identify the components relevant to its question, and drill into specific detail without needing to process the entire architecture at once.</p>
+        </section>
+
+        <section>
+            <h2>Why Both Interfaces</h2>
+            <p>Humans and agents process information differently. Building a single interface and expecting both audiences to use it equally well is a design failure, not an efficiency.</p>
+            <ul>
+                <li><strong>The HTML page</strong> uses visual layout, progressive disclosure, callout boxes, and interactive elements. It relies on spatial arrangement and visual hierarchy to communicate structure. A human scanning the page can orient quickly and drill into sections of interest.</li>
+                <li><strong>The API</strong> uses structured data, explicit field names, and a machine-parseable format. It relies on consistent schema and predictable endpoints. An agent querying the API can extract exactly the information it needs without parsing prose or inferring structure from visual layout.</li>
+            </ul>
+
+            <div class="callout">
+                <strong>Same content, different cognitive interfaces.</strong> The HTML page and the API describe the same system with the same level of detail. The difference is in how the information is structured for consumption. This is itself an example of the translation problem that the portfolio describes: the same underlying knowledge requires different representations depending on who is reading it.
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2026 Samantha White</p>
+        </div>
+    </footer>
+</body>
+</html>
